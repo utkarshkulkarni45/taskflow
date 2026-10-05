@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskflow Dashboard</title>
+    <!-- Tailwind CSS CDN for quick, beautiful styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6 flex flex-col justify-between">
+<div class="max-w-4xl mx-auto w-full">
+    <!-- Header -->
+    <header class="mb-8 text-center">
+        <h1 class="text-4xl font-extrabold tracking-tight text-indigo-400">Taskflow Dashboard</h1>
+        <p class="text-slate-400 mt-2">Manage your projects and tasks seamlessly</p>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Create Project Card -->
+        <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+            <h2 class="text-xl font-semibold mb-4 text-indigo-300">Create New Project</h2>
+            <form id="projectForm" onsubmit="createProject(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Project Title</label>
+                    <input type="text" id="projectTitle" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Description</label>
+                    <input type="text" id="projectDesc" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Owner ID (e.g. 1)</label>
+                    <input type="number" id="projectOwnerId" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg transition">Create Project</button>
+            </form>
+        </div>
+
+        <!-- Create Task Card -->
+        <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+            <h2 class="text-xl font-semibold mb-4 text-emerald-300">Create New Task</h2>
+            <form id="taskForm" onsubmit="createTask(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Task Title</label>
+                    <input type="text" id="taskTitle" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Project ID</label>
+                    <input type="number" id="taskProjectId" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Status</label>
+                        <input type="text" id="taskStatus" value="PENDING" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Priority</label>
+                        <input type="text" id="taskPriority" value="HIGH" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition">Create Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Projects Display Section -->
+    <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-slate-200">Active Projects & Tasks</h2>
+            <button onclick="loadProjects()" class="bg-slate-700 hover:bg-slate-600 text-sm px-3 py-1.5 rounded-lg transition">Refresh</button>
+        </div>
+        <div id="projectsList" class="space-y-4">
+            <p class="text-slate-400 text-center py-4">Loading projects...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Golden Footer Signature -->
+<footer class="mt-12 text-center text-sm">
+    <p class="text-amber-400 font-semibold tracking-wide" style="text-shadow: 0 0 12px rgba(245, 158, 11, 0.4);">Made by UK ✨</p>
+</footer>
+
+<script>
+    const API_URL = 'http://localhost:8080/api';
+
+    async function loadProjects() {
+        const container = document.getElementById('projectsList');
+        try {
+            const response = await fetch(`${API_URL}/projects`);
+            const projects = await response.json();
+
+            if (projects.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-center py-4">No projects found. Create one above!</p>`;
+                return;
+            }
+
+            container.innerHTML = projects.map(p => `
+                <div class="bg-slate-900 border border-slate-700 p-4 rounded-lg">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-lg text-indigo-400">${p.title}</h3>
+                            <p class="text-slate-400 text-sm">${p.description || 'No description'}</p>
+                        </div>
+                        <span class="bg-indigo-950 text-indigo-300 text-xs px-2.5 py-1 rounded-full border border-indigo-800">ID: ${p.id}</span>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-800">
+                        <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tasks</h4>
+                        <div class="space-y-1">
+                            ${p.tasks && p.tasks.length > 0
+                                ? p.tasks.map(t => `
+                                    <div class="flex justify-between items-center text-sm bg-slate-800 px-3 py-1.5 rounded">
+                                        <span>${t.title}</span>
+                                        <div class="space-x-2">
+                                            <span class="text-xs bg-amber-950 text-amber-300 px-2 py-0.5 rounded">${t.status}</span>
+                                            <span class="text-xs bg-rose-950 text-rose-300 px-2 py-0.5 rounded">${t.priority}</span>
+                                        </div>
+                                    </div>`).join('')
+                                : '<p class="text-xs text-slate-500 italic">No tasks assigned yet.</p>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } catch (err) {
+            container.innerHTML = `<p class="text-rose-400 text-center py-4">Error connecting to backend. Is Spring Boot running?</p>`;
+        }
+    }
+
+    async function createProject(e) {
+        e.preventDefault();
+        const data = {
+            title: document.getElementById('projectTitle').value,
+            description: document.getElementById('projectDesc').value,
+            ownerId: Number(document.getElementById('projectOwnerId').value)
+        };
+
+        await fetch(`${API_URL}/projects`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        document.getElementById('projectForm').reset();
+        loadProjects();
+    }
+
+    async function createTask(e) {
+        e.preventDefault();
+        const data = {
+            title: document.getElementById('taskTitle').value,
+            projectId: Number(document.getElementById('taskProjectId').value),
+            status: document.getElementById('taskStatus').value,
+            priority: document.getElementById('taskPriority').value
+        };
+
+        await fetch(`${API_URL}/tasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        document.getElementById('taskForm').reset();
+        loadProjects();
+    }
+
+    // Load data on page load
+    loadProjects();
+</script>
+</body>
+</html>
