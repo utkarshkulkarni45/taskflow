@@ -1,5 +1,5 @@
-# Use a lightweight official Java runtime
-FROM eclipse-temurin:17-jdk-alpine
+# Use official Java 25 runtime
+FROM eclipse-temurin:25-jdk-alpine
 
 # Set working directory
 WORKDIR /app
@@ -11,7 +11,7 @@ COPY mvnw pom.xml ./
 # Give execution permission to the Maven wrapper script
 RUN chmod +x mvnw
 
-# Download dependencies (this caches them for faster builds)
+# Download dependencies
 RUN ./mvnw dependency:go-offline
 
 # Copy the rest of the source code
