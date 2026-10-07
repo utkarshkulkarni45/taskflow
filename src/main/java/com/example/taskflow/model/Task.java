@@ -1,5 +1,6 @@
 package com.example.taskflow.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -32,7 +33,8 @@ public class Task {
     private String priority = "MEDIUM";
 
     // Many tasks belong to one Project
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "project_id")
+    @JsonIgnore
     private Project project;
 }
