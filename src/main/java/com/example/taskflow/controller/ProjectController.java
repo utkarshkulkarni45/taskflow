@@ -44,15 +44,14 @@ public class ProjectController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-
     @PostMapping
-    public ResponseEntity<ProjectResponseDto> createProject(@RequestBody @Valid ProjectRequestDto requestDto) {
-        User owner = userRepository.findById(requestDto.ownerId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Project project = entityMapper.toProjectEntity(requestDto, owner);
-        Project savedProject = projectRepository.save(project);
-
-        return ResponseEntity.ok(entityMapper.toProjectDto(savedProject));
+    public ResponseEntity<?> createProject(@RequestBody ProjectRequestDto requestDto) {
+        try {
+            Project project = projectService.createProject(requestDto);
+            return ResponseEntity.ok(project);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Server Error: " + e.getMessage());
+        }
     }
 }
