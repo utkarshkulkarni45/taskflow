@@ -1,6 +1,7 @@
 package com.example.taskflow.controller;
 
 import com.example.taskflow.model.Project;
+import com.example.taskflow.model.User;
 import com.example.taskflow.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +25,10 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<?> createProject(@RequestBody Project project) {
         try {
-            if (project.getUserId() == null) {
-                project.setUserId(1L); // Assign a default owner ID
+            if (project.getOwner() == null) {
+                User defaultUser = new User();
+                defaultUser.setId(1L); // Assign default owner ID
+                project.setOwner(defaultUser);
             }
             Project savedProject = projectRepository.save(project);
             return ResponseEntity.ok(savedProject);
