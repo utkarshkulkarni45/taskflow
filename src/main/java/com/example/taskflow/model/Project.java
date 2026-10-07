@@ -2,6 +2,7 @@ package com.example.taskflow.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import java.util.List;
 
 @Entity
 @Table(name = "projects")
@@ -14,6 +15,10 @@ public class Project {
     private String title;
     private String description;
 
-    @Column(name = "user_id", nullable = true)
-    private Long userId;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User owner;
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Task> tasks;
 }
