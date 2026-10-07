@@ -30,11 +30,14 @@ public class ProjectController {
     public ResponseEntity<?> createProject(@RequestBody Project project) {
         try {
             // Ensure a user exists to satisfy the foreign key constraint
+            // Ensure a user exists to satisfy the foreign key constraint
             User owner = project.getOwner();
             if (owner == null || owner.getId() == null) {
                 owner = userRepository.findAll().stream().findFirst().orElseGet(() -> {
                     User newUser = new User();
-                    newUser.setUsername("Default User"); // Adjust field name if your User entity uses 'name' or 'email'
+                    newUser.setUsername("Default User");
+                    newUser.setEmail("default@taskflow.com"); // Satisfies @NotBlank for email
+                    newUser.setPassword("defaultPassword123"); // Satisfies @NotBlank for password
                     return userRepository.save(newUser);
                 });
                 project.setOwner(owner);
