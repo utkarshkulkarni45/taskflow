@@ -24,6 +24,9 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<?> createProject(@RequestBody Project project) {
         try {
+            if (project.getUserId() == null) {
+                project.setUserId(1L); // Assign a default owner ID
+            }
             Project savedProject = projectRepository.save(project);
             return ResponseEntity.ok(savedProject);
         } catch (Exception e) {
