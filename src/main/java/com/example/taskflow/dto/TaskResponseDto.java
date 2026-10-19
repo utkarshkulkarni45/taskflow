@@ -1,7 +1,6 @@
-// package com.example.taskflow.dto;
 package com.example.taskflow.dto;
 
-import java.util.List;
+import java.io.Serializable;
 
 public record TaskResponseDto(
         Long id,
@@ -11,4 +10,4 @@ public record TaskResponseDto(
         String priority,
         Long projectId,
         String projectName
-) {}
+) implements Serializable {}

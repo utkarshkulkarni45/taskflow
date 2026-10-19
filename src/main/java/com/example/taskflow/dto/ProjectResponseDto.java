@@ -1,6 +1,6 @@
-// package com.example.taskflow.dto;
 package com.example.taskflow.dto;
 
+import java.io.Serializable;
 import java.util.List;
 
 public record ProjectResponseDto(
@@ -8,4 +8,4 @@ public record ProjectResponseDto(
         String title,
         String description,
         List<TaskResponseDto> tasks
-) {}
+) implements Serializable {}
