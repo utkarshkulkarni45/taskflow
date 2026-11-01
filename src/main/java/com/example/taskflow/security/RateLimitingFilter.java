@@ -1,5 +1,7 @@
 package com.example.taskflow.security;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
@@ -7,6 +9,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -14,23 +18,22 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private static final Logger log = LoggerFactory.getLogger(RateLimitingFilter.class);
 
-    // 60 requests per minute per IP, with a burst capacity of 60
-    private Bucket createNewBucket() {
-        Bandwidth limit = Bandwidth.classic(60, Refill.greedy(60, Duration.ofMinutes(1)));
-        return Bucket.builder().addLimit(limit).build();
-    }
+    private static final int API_REQUESTS_PER_MINUTE = 60;
+    private static final int AUTH_REQUESTS_PER_MINUTE = 10;
+    private static final Duration BUCKET_IDLE_TTL = Duration.ofMinutes(10);
+    private static final Set<String> STRICT_PATHS = Set.of("/api/auth/login", "/api/auth/register");
 
-    private Bucket getBucket(String ip) {
-        return buckets.computeIfAbsent(ip, k -> createNewBucket());
-    }
+    private final Cache<String, Bucket> buckets = Caffeine.newBuilder()
+            .expireAfterAccess(BUCKET_IDLE_TTL)
+            .maximumSize(100_000)
+            .build();
 
     @Override
     protected void doFilterInternal(
@@ -42,13 +45,21 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         // Rate limit only API calls
         if (path.startsWith("/api/")) {
-            String clientIp = getClientIp(request);
-            Bucket bucket = getBucket(clientIp);
+            // Never trust forwarding headers here: with server.forward-headers-strategy=native
+            // the container rewrites getRemoteAddr() from the proxy's headers instead.
+            String clientIp = request.getRemoteAddr();
+            boolean strict = STRICT_PATHS.contains(path);
+            String bucketKey = (strict ? "auth:" : "api:") + clientIp;
+
+            Bucket bucket = buckets.get(bucketKey, key -> strict
+                    ? createBucket(AUTH_REQUESTS_PER_MINUTE)
+                    : createBucket(API_REQUESTS_PER_MINUTE));
 
             if (!bucket.tryConsume(1)) {
+                log.debug("Rate limit exhausted for {} on {}", bucketKey, path);
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
                 response.setContentType("application/json");
-                response.getWriter().write("{\"error\": \"Too many requests. Please slow down.\"}");
+                response.getWriter().write("{\"message\":\"Too many requests. Please slow down.\"}");
                 return;
             }
         }
@@ -56,12 +67,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null || xfHeader.isEmpty()) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0].trim();
+    private Bucket createBucket(int requestsPerMinute) {
+        Bandwidth limit = Bandwidth.classic(
+                requestsPerMinute,
+                Refill.greedy(requestsPerMinute, Duration.ofMinutes(1)));
+        return Bucket.builder().addLimit(limit).build();
     }
 }
-

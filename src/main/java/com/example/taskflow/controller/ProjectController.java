@@ -8,6 +8,8 @@ import com.example.taskflow.model.User;
 import com.example.taskflow.repository.ProjectRepository;
 import com.example.taskflow.repository.UserRepository;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +22,9 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/projects")
-@CrossOrigin(origins = "*")
 public class ProjectController {
+
+    private static final Logger log = LoggerFactory.getLogger(ProjectController.class);
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
@@ -66,13 +69,14 @@ public class ProjectController {
     @CacheEvict(value = "projects", key = "#authentication.name")
     public ResponseEntity<?> createProject(@Valid @RequestBody ProjectRequestDto requestDto,
                                            Authentication authentication) {
+        User user = getAuthenticatedUser(authentication);
         try {
-            User user = getAuthenticatedUser(authentication);
             Project project = entityMapper.toProjectEntity(requestDto, user);
             Project savedProject = projectRepository.save(project);
             return ResponseEntity.ok(entityMapper.toProjectDto(savedProject));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Server Error: " + e.getMessage()));
+            log.error("Failed to create project for user {}", user.getUsername(), e);
+            return ResponseEntity.status(500).body(Map.of("message", "Could not create project"));
         }
     }
 

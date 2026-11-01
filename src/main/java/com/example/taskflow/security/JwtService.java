@@ -2,13 +2,14 @@ package com.example.taskflow.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,15 +18,40 @@ import java.util.function.Function;
 @Component
 public class JwtService {
 
-    @Value("${taskflow.jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    private static final int MIN_KEY_BYTES = 32;
+
+    @Value("${taskflow.jwt.secret}")
     private String secretKey;
 
     @Value("${taskflow.jwt.expiration-ms:86400000}") // 24 hours
     private long jwtExpirationMs;
 
+    private SecretKey signingKey;
+
+    @PostConstruct
+    void initSigningKey() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is not set. Generate one with: openssl rand -base64 48");
+        }
+
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secretKey.trim());
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("JWT_SECRET must be a Base64-encoded string", e);
+        }
+
+        if (keyBytes.length < MIN_KEY_BYTES) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must decode to at least " + MIN_KEY_BYTES + " bytes. Generate one with: openssl rand -base64 48");
+        }
+
+        signingKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return signingKey;
     }
 
     public String extractUsername(String token) {
@@ -72,4 +98,3 @@ public class JwtService {
                 .getPayload();
     }
 }
-
