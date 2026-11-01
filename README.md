@@ -2,6 +2,8 @@
 
 A project and task manager built with Spring Boot. Each user signs up, gets a JWT, and manages their own projects and the tasks inside them. Project lists are cached in Redis, and the API is rate limited per client IP. The single-page frontend is served by the same Spring Boot app.
 
+**Live demo:** https://taskflow-ohat.onrender.com. Register an account to try it out.
+
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-6DB33F?logo=springboot&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
